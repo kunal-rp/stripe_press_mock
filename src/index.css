@@ -1,0 +1,11 @@
+body {
+  margin: 0;
+  height: 100vh;
+}
+
+#app {
+  margin: 0;
+  height: 100%;
+  weight: 100%;
+  background: "red";
+}
