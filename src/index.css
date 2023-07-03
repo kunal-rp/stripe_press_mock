@@ -1,11 +1,16 @@
 body {
   margin: 0;
+  width: 100vw;
   height: 100vh;
 }
 
-#app {
-  margin: 0;
-  height: 100%;
-  weight: 100%;
-  background: "red";
+.container {
+  width: 100%;
+  position: sticky;
+  top: 0;
+}
+
+.content {
+  position: sticky;
+  top: 0;
 }
