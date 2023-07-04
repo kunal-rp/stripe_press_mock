@@ -1,83 +1,121 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Canvas, useFrame } from "@react-three/fiber";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 
-function Box(props) {
+import useAnimationHelper from "./util/useAnimationHelper.js";
+
+function Book(props) {
   // This reference will give us direct access to the mesh
   const mesh = useRef();
-  // Set up state for the hovered and active state
-  const [hovered, setHover] = useState(false);
-  const [active, setActive] = useState(false);
-  // Subscribe this component to the render-loop, rotate the mesh every frame
-  useFrame((state, delta) => (mesh.current.rotation.x += delta));
-  // Return view, these are regular three.js elements expressed in JSX
+
   return (
-    <mesh
-      {...props}
-      ref={mesh}
-      scale={active ? 1.5 : 1}
-      onClick={(event) => setActive(!active)}
-      onPointerOver={(event) => setHover(true)}
-      onPointerOut={(event) => setHover(false)}
-    >
-      <boxGeometry args={[1, 1, 1]} />
-      <meshStandardMaterial color={hovered ? "hotpink" : "orange"} />
+    <mesh {...props} ref={mesh}>
+      <boxGeometry args={[5, 1, 1]} />
+      <meshStandardMaterial color={"orange"} />
     </mesh>
   );
 }
 
-function Books(props) {
+const BOOKS = [
+  {
+    name: "book1",
+  },
+  {
+    name: "book2",
+  },
+  {
+    name: "book3",
+  },
+  {
+    name: "book4",
+  },
+  {
+    name: "book5",
+  },
+  {
+    name: "book6",
+  },
+  {
+    name: "book7",
+  },
+  {
+    name: "book8",
+  },
+];
+
+function Scene(props) {
   return (
-    <Canvas
-      style={{ width: "100vw", height: "100vh", background: props.color }}
-    >
+    <Canvas style={{ width: "100vw", height: "100vh" }}>
       <ambientLight />
       <pointLight position={[10, 10, 10]} />
-      <Box position={[-1.2, 0, 0]} />
-      <Box position={[1.2, 0, 0]} />
+
+      <Books {...props} />
     </Canvas>
   );
 }
 
-function ProgressIndicator(props) {
-  const [per, setPer] = useState(0);
+function Books(props) {
+  const { camera } = useThree();
 
   useEffect(() => {
-    window.addEventListener("scroll", () => {
-      var containerRect = props.containerRef.current.getBoundingClientRect();
+    if (props.activeSection) {
+      var maxHeightDelta = BOOKS.length * 2;
+      camera.position.set(0, -16 * props.percentageScroll, +5);
+    }
+  }, [props.percentageScroll]);
 
-      console.log(containerRect.top + window.scrollY);
-      var winScroll = document.documentElement.scrollTop - containerRect.top;
-      var height = containerRect.height;
-      var scrolled = (winScroll / height) * 100;
-      setPer(scrolled);
-    });
-  }, []);
-  return <>{per}</>;
+  return (
+    <>
+      {BOOKS.map((book, index) => (
+        <Book position={[0, index * -2, 0]} />
+      ))}{" "}
+    </>
+  );
 }
 
+// filler size in 'vh'
 const SECTION_POSITIONS = [
   {
-    fillerSize: "200vh",
-    element: <Books color={"red"} />,
+    name: "books",
+    fillerSize: 500,
+    element: <Scene />,
   },
   {
-    element: <div style={{ background: "green", height: "10vh" }} />,
+    name: "gif",
+    element: <div style={{ background: "green", height: "100vh" }} />,
   },
   {
-    fillerSize: "200vh",
-    element: <Books color={"blue"} />,
-  },
-  {
-    element: <div style={{ background: "green", height: "10vh" }} />,
-  },
-  {
-    fillerSize: "200vh",
-    element: <Books color={"yellow"} />,
+    name: "footer",
+    element: <div style={{ background: "gray", height: "100vh" }} />,
   },
 ];
 
+function vhToPixels(vh) {
+  return Math.round(window.innerHeight / (100 / vh));
+}
+
+// calculate starting pixel y position & pixel size of secitons
+// sections default to 100vh if filler size not provided
+function convertSections() {
+  return SECTION_POSITIONS.map((section, index) => {
+    section.fillerSize = section.fillerSize ?? 100;
+    section.startingPixel = SECTION_POSITIONS.slice(0, index)
+      .map((section) => section.fillerSize)
+      .reduce((acc, val) => acc + vhToPixels(val), 0);
+    section.fillerPizelSize = vhToPixels(section.fillerSize);
+    return section;
+  });
+}
+
 function Section(props) {
   const containerRef = useRef();
+
+  const [activeSection, percentageScroll, setStartPix, setSize] =
+    useAnimationHelper();
+
+  useEffect(() => {
+    setStartPix(props.startingPixel);
+    setSize(props.fillerPizelSize);
+  }, [percentageScroll]);
 
   return (
     <div className="container" ref={containerRef}>
@@ -85,22 +123,26 @@ function Section(props) {
         {" "}
         {React.cloneElement(props.element, {
           containerRef: containerRef,
+          activeSection: activeSection,
+          percentageScroll: percentageScroll,
         })}
       </div>
-      <div className="filler" style={{ height: props.fillerSize ?? "0px" }} />
+      <div className="filler" style={{ height: props.fillerSize + "vh" }} />
     </div>
   );
 }
 
 export default function App(props) {
-  const containerRef1 = useRef();
-  const containerRef2 = useRef();
-  const containerRef3 = useRef();
-
   return (
     <div>
-      {SECTION_POSITIONS.map((section) => (
-        <Section fillerSize={section.fillerSize} element={section.element} />
+      {convertSections().map((section) => (
+        <Section
+          name={section.name}
+          fillerSize={section.fillerSize}
+          element={section.element}
+          startingPixel={section.startingPixel}
+          fillerPizelSize={section.fillerPizelSize}
+        />
       ))}
     </div>
   );
