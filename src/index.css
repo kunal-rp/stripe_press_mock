@@ -15,3 +15,54 @@ body {
   top: 0;
   height: 100vh;
 }
+
+#header {
+  padding-left: 7%;
+  position: absolute;
+  z-index: 20;
+  color: white;
+}
+
+#header > h4 {
+  margin: 0;
+  padding: 0;
+}
+
+#progressIndicator {
+  width: 100vw;
+  height: 100vh;
+  position: fixed;
+  z-index: 10;
+  top: 0;
+  left: 0;
+  color: white;
+}
+
+#sectionIndicatorContainer {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: space-between;
+  height: 15%;
+}
+
+.sectionIndicator {
+  width: 30%;
+  height: 4px;
+  background: white;
+  opacity: 0.5;
+}
+
+.full {
+  opacity: 1;
+}
+
+#sideBar {
+  padding: 2%;
+  height: 90%;
+  width: 3%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: space-between;
+}

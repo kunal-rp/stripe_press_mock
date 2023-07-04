@@ -3,6 +3,8 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 
 import useAnimationHelper from "./util/useAnimationHelper.js";
 
+import Logo from "../public/logo.svg";
+
 function Book(props) {
   // This reference will give us direct access to the mesh
   const mesh = useRef();
@@ -44,7 +46,7 @@ const BOOKS = [
 
 function Scene(props) {
   return (
-    <Canvas style={{ width: "100vw", height: "100vh" }}>
+    <Canvas style={{ width: "100vw", height: "100vh", background: "#281c1c" }}>
       <ambientLight />
       <pointLight position={[10, 10, 10]} />
 
@@ -56,17 +58,19 @@ function Scene(props) {
 function Books(props) {
   const { camera } = useThree();
 
+  const BOOK_DISTANCE = 1.5;
+
   useEffect(() => {
     if (props.activeSection) {
-      var maxHeightDelta = BOOKS.length * 2;
-      camera.position.set(0, -16 * props.percentageScroll, +5);
+      var maxHeightDelta = BOOKS.length * BOOK_DISTANCE;
+      camera.position.set(0, -maxHeightDelta * props.percentageScroll, +5);
     }
   }, [props.percentageScroll]);
 
   return (
     <>
       {BOOKS.map((book, index) => (
-        <Book position={[0, index * -2, 0]} />
+        <Book position={[0, index * -BOOK_DISTANCE, 0]} />
       ))}{" "}
     </>
   );
@@ -85,7 +89,9 @@ const SECTION_POSITIONS = [
   },
   {
     name: "footer",
-    element: <div style={{ background: "gray", height: "100vh" }} />,
+    element: (
+      <div style={{ background: "white", height: "100vh", "z-index": 30 }} />
+    ),
   },
 ];
 
@@ -101,7 +107,7 @@ function convertSections() {
     section.startingPixel = SECTION_POSITIONS.slice(0, index)
       .map((section) => section.fillerSize)
       .reduce((acc, val) => acc + vhToPixels(val), 0);
-    section.fillerPizelSize = vhToPixels(section.fillerSize);
+    section.fillerPixelSize = vhToPixels(section.fillerSize);
     return section;
   });
 }
@@ -114,7 +120,7 @@ function Section(props) {
 
   useEffect(() => {
     setStartPix(props.startingPixel);
-    setSize(props.fillerPizelSize);
+    setSize(props.fillerPixelSize);
   }, [percentageScroll]);
 
   return (
@@ -132,16 +138,102 @@ function Section(props) {
   );
 }
 
+function ProgressIndicator(props) {
+  const [completeSections, setCompleteSections] = useState([]);
+
+  const [activeSectionIndex, setActiveSectionIndex] = useState(0);
+
+  useEffect(() => {
+    if (props.sections.length == 0) return;
+
+    var accPixels = 0;
+
+    setCompleteSections(
+      BOOKS.map((book, index) => {
+        book.sectionPixelSize =
+          props.sections[0].fillerPixelSize / BOOKS.length;
+        book.startingPixel = index * book.sectionPixelSize;
+        return book;
+      }).concat(
+        props.sections.slice(1).map((section) => {
+          section.sectionPixelSize = section.fillerPixelSize;
+          return section;
+        })
+      )
+    );
+  }, [props.sections]);
+
+  function setActiveSection() {
+    var set = false;
+
+    completeSections.forEach((section, index) => {
+      if (
+        document.documentElement.scrollTop <=
+          section.startingPixel + section.sectionPixelSize &&
+        !set
+      ) {
+        set = true;
+        setActiveSectionIndex(index);
+      }
+    });
+  }
+
+  function forceActiveSection(index) {
+    window.scrollTo(
+      0,
+      completeSections[index].startingPixel +
+        completeSections[index].sectionPixelSize / 2
+    );
+  }
+
+  useEffect(() => {
+    window.addEventListener("scroll", setActiveSection);
+    return () => window.removeEventListener("scroll", setActiveSection);
+  }, [completeSections]);
+
+  return (
+    <div id="progressIndicator">
+      <div id="sideBar">
+        <img src={Logo} style={{ height: "5%" }} />
+        <div id="sectionIndicatorContainer">
+          {completeSections.map((section, index) => (
+            <div
+              className={
+                "sectionIndicator " +
+                (activeSectionIndex == index ? " full" : "")
+              }
+              onClick={() => forceActiveSection(index)}
+            />
+          ))}
+        </div>
+        <h1 id="help"> ? </h1>
+      </div>
+    </div>
+  );
+}
+
 export default function App(props) {
+  const [activeSection, setActiveSection] = useState(0);
+  const [sections, setSections] = useState([]);
+
+  useEffect(() => {
+    setSections(convertSections());
+  }, []);
+
   return (
     <div>
-      {convertSections().map((section) => (
+      <ProgressIndicator sections={sections} />
+      <div id="header">
+        <h3>Stripe Press</h3>
+        <h4 style={{ "font-style": "italic" }}>Ideas for progress</h4>
+      </div>
+      {sections.map((section) => (
         <Section
           name={section.name}
           fillerSize={section.fillerSize}
           element={section.element}
           startingPixel={section.startingPixel}
-          fillerPizelSize={section.fillerPizelSize}
+          fillerPixelSize={section.fillerPixelSize}
         />
       ))}
     </div>
